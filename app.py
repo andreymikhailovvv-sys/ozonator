@@ -16,20 +16,24 @@ def log_req():
     except:
         pass
 
-# Корневая проверка
+
 @app.route("/", methods=["GET"])
 def root():
     return "OK", 200
 
-# ВОТ ЗДЕСЬ ВАЖНОЕ — webhook принимает GET и POST
-@app.route("/webhook", methods=["GET", "POST"])
+
+@app.route("/webhook", methods=["GET", "POST", "HEAD"])
 def webhook():
 
-    # Telegram делает GET при установке вебхука
+    # Telegram проверяет доступность вебхука HEAD-запросом
+    if request.method == "HEAD":
+        return "", 200
+
+    # Telegram проверяет URL через GET
     if request.method == "GET":
         return "Webhook OK", 200
 
-    # Telegram присылает JSON с update
+    # Теперь обработка входящих сообщений
     update = request.json or {}
     print("UPDATE:", update, flush=True)
 
@@ -40,10 +44,8 @@ def webhook():
     if not chat_id or not text:
         return "no chat or text", 200
 
-    sku = text.strip()
-
     try:
-        product = get_product_data(sku)
+        product = get_product_data(text.strip())
         result = calculate_unit_economy(product)
         send_message(chat_id, result)
     except Exception as e:
