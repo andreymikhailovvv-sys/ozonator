@@ -25,33 +25,43 @@ def root():
 @app.route("/webhook", methods=["GET", "POST", "HEAD"])
 def webhook():
 
-    # Telegram проверяет доступность вебхука HEAD-запросом
+    # Telegram проверяет вебхук HEAD-запросом
     if request.method == "HEAD":
         return "", 200
 
-    # Telegram проверяет URL через GET
+    # Telegram иногда проверяет URL через GET
     if request.method == "GET":
         return "Webhook OK", 200
 
-    # Теперь обработка входящих сообщений
-    update = request.json or {}
-    print("UPDATE:", update, flush=True)
-
-    message = update.get("message", {})
-    chat_id = message.get("chat", {}).get("id")
-    text = message.get("text")
-
-    if not chat_id or not text:
-        return "no chat or text", 200
-
+    # Вот здесь начинается обработка входящих сообщений
     try:
-        product = get_product_data(text.strip())
-        result = calculate_unit_economy(product)
-        send_message(chat_id, result)
-    except Exception as e:
-        send_message(chat_id, f"Ошибка обработки SKU: {e}")
+        update = request.json or {}
+        print("UPDATE:", update, flush=True)
 
+        message = update.get("message", {})
+        chat_id = message.get("chat", {}).get("id")
+        text = message.get("text")
+
+        if not chat_id or not text:
+            return "OK", 200   # Telegram должен получить 200
+
+        sku = text.strip()
+        product = get_product_data(sku)
+        result = calculate_unit_economy(product)
+
+        send_message(chat_id, result)
+
+    except Exception as e:
+        # Ловим все ошибки и НЕ даём Telegram увидеть 500
+        print("INTERNAL ERROR:", e, flush=True)
+        try:
+            send_message(chat_id, f"Ошибка обработки SKU: {e}")
+        except:
+            pass
+
+    # Telegram должен ВСЕГДА получать 200
     return "OK", 200
+
 
 
 if __name__ == "__main__":
