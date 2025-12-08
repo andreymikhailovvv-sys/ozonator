@@ -15,6 +15,7 @@ def get_product_data(offer_id):
     payload = {"offer_id": offer_id}
 
     r = requests.post(url, json=payload, headers=headers)
+    print("RAW RESPONSE:", r.text, flush=True)
     data = r.json()
     result = data.get("result", {})
     price_block = result.get("price", {})
