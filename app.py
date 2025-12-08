@@ -5,27 +5,34 @@ from calculator import calculate_unit_economy
 import os
 
 app = Flask(__name__)
+
 PORT = int(os.environ.get("PORT", 10000))
 
 @app.before_request
-def debug_log():
+def log_req():
     print(f"REQ: {request.method} {request.path}", flush=True)
-    print(request.get_data(as_text=True), flush=True)
+    try:
+        print("BODY:", request.get_data(as_text=True), flush=True)
+    except:
+        pass
 
+# Корневая проверка
 @app.route("/", methods=["GET"])
 def root():
     return "OK", 200
 
-@app.route("/webhook", methods=["POST"])
+# ВОТ ЗДЕСЬ ВАЖНОЕ — webhook принимает GET и POST
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
 
-    update = request.json
+    # Telegram делает GET при установке вебхука
+    if request.method == "GET":
+        return "Webhook OK", 200
+
+    # Telegram присылает JSON с update
+    update = request.json or {}
     print("UPDATE:", update, flush=True)
 
-    if not update:
-        return "no update", 200
-
-    # стандартный формат входящих данных Telegram
     message = update.get("message", {})
     chat_id = message.get("chat", {}).get("id")
     text = message.get("text")
@@ -43,6 +50,7 @@ def webhook():
         send_message(chat_id, f"Ошибка обработки SKU: {e}")
 
     return "OK", 200
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=PORT)
