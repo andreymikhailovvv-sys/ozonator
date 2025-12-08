@@ -1,3 +1,4 @@
+print("APP VERSION: 7", flush=True)
 from flask import Flask, request
 from telegram_api import send_message, send_keyboard
 from ozon_api import list_products, get_product_info
