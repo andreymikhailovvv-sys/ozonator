@@ -6,14 +6,23 @@ from calculator import calculate_unit_economy
 app = Flask(__name__)
 
 
-@app.route("/webhook", methods=["POST"])
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
+    if request.method == "GET":
+        return "Webhook OK", 200  # BotFuzzer проверяет доступность URL
+
+    # POST — реальные сообщения от бота
     data = request.json
-    chat_id = data.get("chat_id")
-    text = data.get("text", "").strip()
+    payload = data.get("data", data)
+
+    chat_id = payload.get("chat_id")
+    text = payload.get("text", "").strip()
+
+    if not chat_id:
+        return "no chat_id", 200
 
     if not text:
-        send_message(chat_id, "Введите SKU или offer_id товара.")
+        send_message(chat_id, "Введите SKU товара.")
         return "ok", 200
 
     try:
@@ -24,6 +33,7 @@ def webhook():
         send_message(chat_id, f"Ошибка: {str(e)}")
 
     return "ok", 200
+
 
 
 if __name__ == "__main__":
